@@ -87,7 +87,12 @@ export default function Informes() {
             </div>
             <div>
               <label style={labelStyle}>Hora de envío</label>
-              <input type="time" style={inputStyle} value={form.send_time} onChange={e => setForm({...form, send_time: e.target.value})} />
+              <select style={inputStyle} value={form.send_time} onChange={e => setForm({...form, send_time: e.target.value})}>
+                {Array.from({length: 24}, (_, i) => {
+                  const h = i.toString().padStart(2, '0')
+                  return <option key={h} value={`${h}:00`}>{`${h}:00`}</option>
+                })}
+              </select>
             </div>
             <div>
               <label style={labelStyle}>Destinatarios (separados por coma)</label>
