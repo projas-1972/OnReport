@@ -61,6 +61,11 @@ export default function Proyectos() {
     setLoading(false)
   }
 
+  const updateProjectStatus = async (projectId, newStatus) => {
+    await supabase.from('projects').update({ status: newStatus }).eq('id', projectId)
+    loadProjects()
+  }
+
   const openMembers = async (project) => {
     setSelectedProject(project)
     setShowMembersModal(true)
@@ -135,7 +140,6 @@ export default function Proyectos() {
 
   const deleteProject = async (projectId) => {
     setDeletingId(projectId)
-    // Eliminar miembros, tareas Gantt y schedules asociados
     await supabase.from('project_members').delete().eq('project_id', projectId)
     await supabase.from('gantt_tasks').delete().eq('project_id', projectId)
     await supabase.from('pdf_schedules').delete().eq('project_id', projectId)
@@ -213,13 +217,32 @@ export default function Proyectos() {
                     👥 {memberCounts[p.id]} {memberCounts[p.id] === 1 ? 'miembro' : 'miembros'}
                   </div>
                 )}
+                {/* Selector de estado */}
+                <select
+                  value={p.status}
+                  onChange={e => updateProjectStatus(p.id, e.target.value)}
+                  style={{
+                    marginTop: 12, width: '100%', padding: '7px 10px',
+                    background: '#1e2128', border: '1px solid #333',
+                    borderRadius: 8, color: '#888', fontSize: 12, cursor: 'pointer', outline: 'none'
+                  }}
+                >
+                  <option value="active">En línea</option>
+                  <option value="delayed">Retraso</option>
+                  <option value="blocked">Bloqueado</option>
+                  <option value="paused">Pausado</option>
+                  <option value="done">Terminado</option>
+                </select>
+
                 <button onClick={() => openMembers(p)} style={{
-                  marginTop: 14, width: '100%', padding: '7px 0',
+                  marginTop: 8, width: '100%', padding: '7px 0',
                   background: '#1e2128', border: '1px solid #333',
                   borderRadius: 8, color: '#888', fontSize: 12, cursor: 'pointer'
                 }}>
                   👥 Gestionar equipo
                 </button>
+
+                {/* Botón eliminar solo si está terminado */}
                 {p.status === 'done' && (
                   confirmDeleteId === p.id ? (
                     <div style={{ marginTop: 8, background: '#2d0707', border: '1px solid #7f1d1d', borderRadius: 8, padding: '10px 12px' }}>
