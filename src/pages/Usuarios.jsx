@@ -11,6 +11,7 @@ export default function Usuarios() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => { loadUsers() }, [])
 
@@ -61,8 +62,15 @@ export default function Usuarios() {
   }
 
   const deleteUser = async (id) => {
-    await supabase.from('profiles').delete().eq('id', id)
+    setDeleting(true)
+    const { data, error: fnError } = await supabase.functions.invoke('delete-user', {
+      body: { user_id: id }
+    })
+    if (fnError || data?.error) {
+      console.error(data?.error || fnError?.message)
+    }
     setShowDeleteConfirm(null)
+    setDeleting(false)
     loadUsers()
   }
 
@@ -134,7 +142,7 @@ export default function Usuarios() {
               <div><label style={labelStyle}>Email *</label>
                 <input type="email" style={inputStyle} value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="juan@empresa.cl" />
               </div>
-              <div><label style={labelStyle}>Contraseña *</label>
+              <div><label style={labelStyle}>Contraseña * (mínimo 6 caracteres)</label>
                 <input type="password" style={inputStyle} value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Mínimo 6 caracteres" />
               </div>
               <div><label style={labelStyle}>Teléfono</label>
@@ -166,15 +174,15 @@ export default function Usuarios() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 24, width: 360 }}>
             <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>¿Eliminar usuario?</h2>
-            <p style={{ color: '#888', fontSize: 13, marginBottom: 20 }}>Esta acción no se puede deshacer.</p>
+            <p style={{ color: '#888', fontSize: 13, marginBottom: 20 }}>Se eliminará el acceso completo. Esta acción no se puede deshacer.</p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button onClick={() => setShowDeleteConfirm(null)}
                 style={{ padding: '8px 16px', background: 'none', border: '1px solid #333', borderRadius: 8, color: '#888', fontSize: 13, cursor: 'pointer' }}>
                 Cancelar
               </button>
-              <button onClick={() => deleteUser(showDeleteConfirm)}
-                style={{ padding: '8px 16px', background: '#7f1d1d', color: '#fca5a5', border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>
-                Eliminar
+              <button onClick={() => deleteUser(showDeleteConfirm)} disabled={deleting}
+                style={{ padding: '8px 16px', background: deleting ? '#333' : '#7f1d1d', color: '#fca5a5', border: 'none', borderRadius: 8, fontSize: 13, cursor: deleting ? 'default' : 'pointer' }}>
+                {deleting ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
           </div>

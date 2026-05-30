@@ -7,6 +7,7 @@ export default function Informes() {
   const [form, setForm] = useState({ project_id: '', report_type: 'daily', send_time: '18:00', recipients: '' })
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
     supabase.from('projects').select('id, name').then(({ data }) => {
@@ -17,7 +18,9 @@ export default function Informes() {
   }, [])
 
   const loadSchedules = async () => {
-    const { data } = await supabase.from('pdf_schedules').select('*, projects(name)').order('created_at', { ascending: false })
+    const { data } = await supabase.from('pdf_schedules')
+      .select('*, projects(name)')
+      .order('created_at', { ascending: false })
     setSchedules(data || [])
   }
 
@@ -42,6 +45,13 @@ export default function Informes() {
   const toggleSchedule = async (id, active) => {
     await supabase.from('pdf_schedules').update({ active: !active }).eq('id', id)
     loadSchedules()
+  }
+
+  const deleteSchedule = async (id) => {
+    setDeletingId(id)
+    await supabase.from('pdf_schedules').delete().eq('id', id)
+    await loadSchedules()
+    setDeletingId(null)
   }
 
   const typeLabels = { daily: 'Reporte diario', weekly: 'Resumen semanal', on_blocker: 'Solo si hay bloqueos' }
@@ -93,7 +103,7 @@ export default function Informes() {
             <button onClick={handleSave} disabled={saving || !form.project_id} style={{
               padding: '10px', background: saving ? '#333' : '#f0f0f0',
               color: saving ? '#888' : '#0f0f0f', border: 'none',
-              borderRadius: 8, fontSize: 13, fontWeight: 500
+              borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer'
             }}>
               {saving ? 'Guardando...' : '📅 Programar envío'}
             </button>
@@ -110,7 +120,11 @@ export default function Informes() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {schedules.map(s => (
-                <div key={s.id} style={{ background: '#242424', borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                <div key={s.id} style={{
+                  background: '#242424', borderRadius: 8, padding: '12px 14px',
+                  display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+                  gap: 10, border: s.active ? 'none' : '1px solid #2d0707'
+                }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 3 }}>{typeLabels[s.report_type]}</div>
                     <div style={{ fontSize: 12, color: '#888' }}>📁 {s.projects?.name}</div>
@@ -124,13 +138,38 @@ export default function Informes() {
                       </div>
                     )}
                   </div>
-                  <button onClick={() => toggleSchedule(s.id, s.active)} style={{
-                    padding: '4px 10px', borderRadius: 99, fontSize: 11, border: 'none', cursor: 'pointer',
-                    background: s.active ? '#052e16' : '#2d0707',
-                    color: s.active ? '#86efac' : '#fca5a5'
-                  }}>
-                    {s.active ? 'Activo' : 'Inactivo'}
-                  </button>
+
+                  {/* Botones según estado */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+                    {s.active ? (
+                      <button onClick={() => toggleSchedule(s.id, s.active)} style={{
+                        padding: '4px 10px', borderRadius: 99, fontSize: 11, border: 'none',
+                        cursor: 'pointer', background: '#052e16', color: '#86efac'
+                      }}>
+                        Activo
+                      </button>
+                    ) : (
+                      <>
+                        <button onClick={() => toggleSchedule(s.id, s.active)} style={{
+                          padding: '4px 10px', borderRadius: 99, fontSize: 11, border: 'none',
+                          cursor: 'pointer', background: '#2d0707', color: '#fca5a5'
+                        }}>
+                          Inactivo
+                        </button>
+                        <button
+                          onClick={() => deleteSchedule(s.id)}
+                          disabled={deletingId === s.id}
+                          style={{
+                            padding: '4px 10px', borderRadius: 99, fontSize: 11, border: 'none',
+                            cursor: deletingId === s.id ? 'not-allowed' : 'pointer',
+                            background: '#3f0707', color: '#f87171'
+                          }}
+                        >
+                          {deletingId === s.id ? '...' : '🗑 Eliminar'}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
