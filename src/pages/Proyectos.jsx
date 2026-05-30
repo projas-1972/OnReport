@@ -22,6 +22,8 @@ export default function Proyectos() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
 
   // Estado para asignar usuarios
   const [showMembersModal, setShowMembersModal] = useState(false)
@@ -131,6 +133,19 @@ export default function Proyectos() {
     setSaving(false)
   }
 
+  const deleteProject = async (projectId) => {
+    setDeletingId(projectId)
+    // Eliminar miembros, tareas Gantt y schedules asociados
+    await supabase.from('project_members').delete().eq('project_id', projectId)
+    await supabase.from('gantt_tasks').delete().eq('project_id', projectId)
+    await supabase.from('pdf_schedules').delete().eq('project_id', projectId)
+    await supabase.from('daily_reports').delete().eq('project_id', projectId)
+    await supabase.from('projects').delete().eq('id', projectId)
+    setConfirmDeleteId(null)
+    setDeletingId(null)
+    loadProjects()
+  }
+
   // Usuarios ya asignados al proyecto
   const assignedUserIds = members.map(m => m.user_id)
   const availableUsers = allUsers.filter(u => !assignedUserIds.includes(u.id))
@@ -205,6 +220,31 @@ export default function Proyectos() {
                 }}>
                   👥 Gestionar equipo
                 </button>
+                {p.status === 'done' && (
+                  confirmDeleteId === p.id ? (
+                    <div style={{ marginTop: 8, background: '#2d0707', border: '1px solid #7f1d1d', borderRadius: 8, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 12, color: '#fca5a5', marginBottom: 8 }}>⚠ ¿Eliminar este proyecto y todos sus datos?</div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => setConfirmDeleteId(null)} style={{
+                          flex: 1, padding: '6px 0', background: '#333', border: 'none',
+                          borderRadius: 6, color: '#888', fontSize: 12, cursor: 'pointer'
+                        }}>Cancelar</button>
+                        <button onClick={() => deleteProject(p.id)} disabled={deletingId === p.id} style={{
+                          flex: 1, padding: '6px 0', background: '#7f1d1d', border: 'none',
+                          borderRadius: 6, color: '#fca5a5', fontSize: 12, cursor: 'pointer', fontWeight: 500
+                        }}>{deletingId === p.id ? 'Eliminando...' : '🗑 Confirmar'}</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(p.id)} style={{
+                      marginTop: 8, width: '100%', padding: '7px 0',
+                      background: '#2d0707', border: '1px solid #7f1d1d',
+                      borderRadius: 8, color: '#fca5a5', fontSize: 12, cursor: 'pointer'
+                    }}>
+                      🗑 Eliminar proyecto
+                    </button>
+                  )
+                )}
               </div>
             )
           })}
