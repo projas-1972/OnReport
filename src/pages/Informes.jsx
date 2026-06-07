@@ -10,8 +10,6 @@ export default function Informes() {
   const [deletingId, setDeletingId] = useState(null)
   const [downloadingId, setDownloadingId] = useState(null)
 
-  const typeLabels = { daily: 'Reporte diario', weekly: 'Resumen semanal', on_blocker: 'Solo si hay bloqueos' }
-
   const generatePdf = async (schedule) => {
     setDownloadingId(schedule.id)
     try {
@@ -131,6 +129,7 @@ export default function Informes() {
     setDeletingId(null)
   }
 
+  const typeLabels = { daily: 'Reporte diario', weekly: 'Resumen semanal', on_blocker: 'Solo si hay bloqueos' }
   const inputStyle = { width: '100%', padding: '9px 12px', background: '#242424', border: '1px solid #333', borderRadius: 8, color: '#f0f0f0', fontSize: 13, outline: 'none' }
   const labelStyle = { fontSize: 12, color: '#888', display: 'block', marginBottom: 5 }
 
