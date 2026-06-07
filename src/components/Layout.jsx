@@ -6,8 +6,8 @@ const navItems = [
   { to: '/proyectos', label: 'Proyectos',    icon: '📁' },
   { to: '/gantt',     label: 'Carta Gantt',  icon: '📅' },
   { to: '/reportes',  label: 'Reportes',     icon: '📄' },
-  { to: '/usuarios',  label: 'Usuarios',     icon: '👥' },
   { to: '/informes',  label: 'Informes PDF', icon: '📥' },
+  { to: '/usuarios',  label: 'Usuarios',     icon: '👥' },
 ]
 
 export default function Layout({ session }) {
