@@ -231,15 +231,18 @@ Genera un JSON con esta estructura exacta (solo JSON, sin markdown):
   "plan_manana": "qué se planifica para el día siguiente"
 }`
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      })
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch(
+        'https://ebzbrhyvieaypkffbozm.supabase.co/functions/v1/generate-report',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({ prompt })
+        }
+      )
 
       const aiData = await response.json()
       const aiText = aiData.content?.map(c => c.text || '').join('') || ''
