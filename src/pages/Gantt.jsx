@@ -180,8 +180,8 @@ export default function Gantt() {
             const widthPct = Math.max(2, (durationDays / totalDays) * 100)
 
             return (
-              <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                <div style={{ width: 160, fontSize: 12, color: '#ccc', textAlign: 'right', flexShrink: 0 }}>
+              <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, minHeight: 40 }}>
+                <div style={{ width: 160, fontSize: 12, color: '#ccc', textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <div>{task.task_name}</div>
                   <div style={{ fontSize: 10, color: '#555', marginTop: 1 }}>
                     {task.planned_start} → {task.planned_end}
