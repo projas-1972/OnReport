@@ -177,7 +177,7 @@ export default function Gantt() {
             const offsetDays = Math.max(0, Math.round((taskStart - projectStart) / (1000 * 60 * 60 * 24)))
             const durationDays = Math.max(1, Math.round((taskEnd - taskStart) / (1000 * 60 * 60 * 24)))
             const leftPct = (offsetDays / totalDays) * 100
-            const widthPct = Math.max(2, (durationDays / totalDays) * 100)
+            const widthPct = Math.min(100 - leftPct, Math.max(2, (durationDays / totalDays) * 100))
 
             return (
               <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, minHeight: 40 }}>
