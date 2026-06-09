@@ -12,6 +12,7 @@ export default function Usuarios() {
   const [error, setError] = useState('')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => { loadUsers() }, [])
 
@@ -63,15 +64,26 @@ export default function Usuarios() {
 
   const deleteUser = async (id) => {
     setDeleting(true)
-    const { data, error: fnError } = await supabase.functions.invoke('delete-user', {
-      body: { user_id: id }
-    })
-    if (fnError || data?.error) {
-      console.error(data?.error || fnError?.message)
+    setDeleteError('')
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: id }
+      })
+      console.log('delete-user response:', data)
+      console.log('delete-user error:', fnError)
+      if (fnError || data?.error) {
+        setDeleteError(data?.error || fnError?.message || 'Error al eliminar usuario')
+        setDeleting(false)
+        return
+      }
+      setShowDeleteConfirm(null)
+      loadUsers()
+    } catch (e) {
+      console.error('delete-user exception:', e)
+      setDeleteError('Error inesperado: ' + e.message)
+    } finally {
+      setDeleting(false)
     }
-    setShowDeleteConfirm(null)
-    setDeleting(false)
-    loadUsers()
   }
 
   const roleColors = { admin: '#93c5fd', gerente: '#86efac', supervisor: '#fcd34d', capataz: '#888' }
@@ -117,7 +129,7 @@ export default function Usuarios() {
               <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: 11, background: u.active ? '#052e16' : '#2d0707', color: u.active ? '#86efac' : '#fca5a5' }}>
                 {u.active ? 'Activo' : 'Inactivo'}
               </span>
-              <button onClick={() => setShowDeleteConfirm(u.id)}
+              <button onClick={() => { setShowDeleteConfirm(u.id); setDeleteError('') }}
                 style={{ padding: '3px 8px', borderRadius: 6, fontSize: 11, background: '#2d0707', color: '#fca5a5', border: 'none', cursor: 'pointer' }}>
                 ✕
               </button>
@@ -175,8 +187,13 @@ export default function Usuarios() {
           <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 12, padding: 24, width: 360 }}>
             <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>¿Eliminar usuario?</h2>
             <p style={{ color: '#888', fontSize: 13, marginBottom: 20 }}>Se eliminará el acceso completo. Esta acción no se puede deshacer.</p>
+            {deleteError && (
+              <div style={{ background: '#2d0707', color: '#fca5a5', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+                {deleteError}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button onClick={() => setShowDeleteConfirm(null)}
+              <button onClick={() => { setShowDeleteConfirm(null); setDeleteError('') }}
                 style={{ padding: '8px 16px', background: 'none', border: '1px solid #333', borderRadius: 8, color: '#888', fontSize: 13, cursor: 'pointer' }}>
                 Cancelar
               </button>
