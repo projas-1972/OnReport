@@ -69,7 +69,7 @@ export default function Gantt() {
     if (progress === 100) return '#22c55e'
     if (progress >= 50) return '#3b82f6'
     if (progress > 0) return '#f59e0b'
-    return '#2a2a2a'
+    return '#9ca3af'
   }
 
   // Calcular rango total del proyecto considerando TODAS las tareas
@@ -160,7 +160,7 @@ export default function Gantt() {
         <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 12, padding: 20, overflowX: 'auto' }}>
           {/* Leyenda */}
           <div style={{ display: 'flex', gap: 16, marginBottom: 16, fontSize: 12, color: '#888' }}>
-            {[['#22c55e','Completado'], ['#3b82f6','En progreso'], ['#f59e0b','Atrasado'], ['#2a2a2a','Pendiente']].map(([color, label]) => (
+            {[['#22c55e','Completado'], ['#3b82f6','En progreso'], ['#f59e0b','Atrasado'], ['#9ca3af','Pendiente']].map(([color, label]) => (
               <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ width: 10, height: 10, background: color, borderRadius: 2, display: 'inline-block' }}></span>
                 {label}
@@ -194,7 +194,7 @@ export default function Gantt() {
                     background: getBarColor(task.actual_progress),
                     borderRadius: 4, display: 'flex', alignItems: 'center',
                     paddingLeft: 6, fontSize: 10, fontWeight: 500,
-                    color: task.actual_progress === 0 ? '#555' : '#fff',
+                    color: task.actual_progress === 0 ? '#d1d5db' : '#fff',
                     minWidth: 30, transition: 'width .3s'
                   }}>
                     {task.actual_progress > 10 ? task.actual_progress + '%' : ''}
