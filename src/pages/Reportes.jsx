@@ -5,6 +5,14 @@ import { supabase } from '../lib/supabase'
 
 const fmt = d => new Date(d).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
 
+// Fecha de hoy en zona horaria de Chile (yyyy-mm-dd) — evita el salto de día de toISOString (UTC)
+const todayCL = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date())
+
+// Audios de un reporte: usa el arreglo nuevo audio_urls; cae a audio_url por compatibilidad con reportes antiguos
+const getAudios = r => (Array.isArray(r.audio_urls) && r.audio_urls.length > 0)
+  ? r.audio_urls
+  : (r.audio_url ? [r.audio_url] : [])
+
 const statusColor = pct => {
   if (pct >= 95) return { color: '#22c55e', bg: '#052e16', label: 'AL DÍA', desc: 'Proyecto en línea con lo planificado.' }
   if (pct >= 80) return { color: '#f59e0b', bg: '#2d1a00', label: 'RETRASO LEVE', desc: 'Desviación menor a 15%. Bajo control.' }
@@ -56,7 +64,7 @@ function ReportesTerrenoTab() {
 
   const filtered = reports.filter(r => {
     if (filter === 'blocked') return r.has_blocker
-    if (filter === 'today') return r.report_date === new Date().toISOString().split('T')[0]
+    if (filter === 'today') return r.report_date === todayCL()
     return true
   })
 
@@ -120,9 +128,34 @@ function ReportesTerrenoTab() {
                   🤖 {r.ai_summary}
                 </div>
               )}
+              {/* Tareas acumuladas del día */}
+              {Array.isArray(r.checklist_items) && r.checklist_items.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                  {r.checklist_items.map((item, i) => (
+                    <div key={item.task_id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#242424', padding: '6px 12px', borderRadius: 8 }}>
+                      <span style={{ fontSize: 12, color: '#ccc' }}>{item.task_name}</span>
+                      <span style={{
+                        fontSize: 11, fontWeight: 600,
+                        color: (item.progress || 0) === 100 ? '#22c55e' : (item.progress || 0) > 0 ? '#60a5fa' : '#888'
+                      }}>{item.progress || 0}%</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Audios del día, reproducibles */}
+              {getAudios(r).length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                  {getAudios(r).map((url, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, color: '#888', flexShrink: 0 }}>🎙️ Audio {getAudios(r).length > 1 ? i + 1 : ''}</span>
+                      <audio controls preload="none" src={url} style={{ height: 32, flex: 1, maxWidth: 360 }} />
+                    </div>
+                  ))}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#888' }}>
                 {r.photo_urls?.length > 0 && <span>📷 {r.photo_urls.length} fotos</span>}
-                {r.audio_url && <span>🎙️ Audio adjunto</span>}
+                {getAudios(r).length > 0 && <span>🎙️ {getAudios(r).length} audio{getAudios(r).length !== 1 ? 's' : ''}</span>}
               </div>
             </div>
           ))}
@@ -138,7 +171,7 @@ function ReportesProyectoTab() {
   const [grupos, setGrupos] = useState([])   // [{project_id, project_name, date, reports:[]}]
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(null)  // key = projectId+date
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0])
+  const [filterDate, setFilterDate] = useState(todayCL())
 
   useEffect(() => { loadGrupos() }, [filterDate])
 
@@ -185,7 +218,8 @@ function ReportesProyectoTab() {
           descripcion_bloqueo: r.blocker_description || '',
           audio_transcript: r.audio_transcript || '',
           fotos: r.photo_urls || [],
-          audio_url: r.audio_url || ''
+          audios: getAudios(r),
+          cantidad_audios: getAudios(r).length
         }
       })
 
@@ -466,7 +500,7 @@ Genera un JSON con esta estructura exacta (solo JSON, sin markdown):
             const key = g.project_id + g.date
             const isGenerating = generating === key
             const totalFotos = g.reports.flatMap(r => r.photo_urls || []).length
-            const totalAudios = g.reports.filter(r => r.audio_url).length
+            const totalAudios = g.reports.reduce((acc, r) => acc + getAudios(r).length, 0)
             const hayBloqueo = g.reports.some(r => r.has_blocker)
             const avgP = Math.round(g.reports.reduce((acc, r) => {
               const items = Array.isArray(r.checklist_items) ? r.checklist_items : []
