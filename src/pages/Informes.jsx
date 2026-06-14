@@ -85,9 +85,9 @@ export default function Informes() {
   }
 
   useEffect(() => {
-    supabase.from('projects').select('id, name').then(({ data }) => {
+    supabase.from('projects').select('id, name, client_emails').then(({ data }) => {
       setProjects(data || [])
-      if (data?.length > 0) setForm(f => ({ ...f, project_id: data[0].id }))
+      if (data?.length > 0) setForm(f => ({ ...f, project_id: data[0].id, recipients: (data[0].client_emails || []).join(', ') }))
     })
     loadSchedules()
   }, [])
@@ -148,7 +148,10 @@ export default function Informes() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <label style={labelStyle}>Proyecto</label>
-              <select style={inputStyle} value={form.project_id} onChange={e => setForm({...form, project_id: e.target.value})}>
+              <select style={inputStyle} value={form.project_id} onChange={e => {
+                const proj = projects.find(p => p.id === e.target.value)
+                setForm({...form, project_id: e.target.value, recipients: (proj?.client_emails || []).join(', ')})
+              }}>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
