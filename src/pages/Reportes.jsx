@@ -13,10 +13,11 @@ const getAudios = r => (Array.isArray(r.audio_urls) && r.audio_urls.length > 0)
   ? r.audio_urls
   : (r.audio_url ? [r.audio_url] : [])
 
-const statusColor = pct => {
-  if (pct >= 95) return { color: '#22c55e', bg: '#052e16', label: 'AL DÍA', desc: 'Proyecto en línea con lo planificado.' }
-  if (pct >= 80) return { color: '#f59e0b', bg: '#2d1a00', label: 'RETRASO LEVE', desc: 'Desviación menor a 15%. Bajo control.' }
-  return { color: '#ef4444', bg: '#2d0707', label: 'RETRASO CRÍTICO', desc: 'Requiere acción inmediata.' }
+// Recibe la DESVIACIÓN (realPct - plannedPct), no el progreso absoluto
+const statusColor = deviation => {
+  if (deviation >= 0)  return { color: '#22c55e', bg: '#052e16', label: 'ADELANTADO',     desc: `${deviation >= 0 ? '+' : ''}${Math.round(deviation)}% sobre lo planificado.` }
+  if (deviation >= -10) return { color: '#f59e0b', bg: '#2d1a00', label: 'RETRASO LEVE',   desc: `${Math.round(Math.abs(deviation))} puntos bajo lo planificado. Bajo control.` }
+  return                       { color: '#ef4444', bg: '#2d0707', label: 'RETRASO CRÍTICO', desc: `${Math.round(Math.abs(deviation))} puntos bajo lo planificado. Requiere acción inmediata.` }
 }
 
 // ── Componente principal ───────────────────────────────────────────────────
@@ -240,55 +241,7 @@ function ReportesProyectoTab() {
         ? ganttTasks.reduce((a, t) => a + (t.actual_progress || 0), 0) / ganttTasks.length
         : 0
 
-      // 4. Llamar a Claude API para generar resumen
-      const prompt = `Eres un asistente de gestión de proyectos de seguridad electrónica. 
-Genera un resumen ejecutivo profesional en español para el informe diario de proyecto.
-
-PROYECTO: ${grupo.project_name}
-CLIENTE: ${grupo.client_name}
-FECHA: ${grupo.date}
-ACTIVIDADES DEL DÍA: ${JSON.stringify(actividades, null, 2)}
-
-Genera un JSON con esta estructura exacta (solo JSON, sin markdown):
-{
-  "resumen_ejecutivo": "2-3 oraciones resumiendo el trabajo del día",
-  "actividades": [
-    {
-      "titulo": "nombre de la actividad",
-      "descripcion": "descripción detallada de lo ejecutado basada en las tareas y transcripciones",
-      "progreso": 75,
-      "estado": "completado|en_progreso|bloqueado"
-    }
-  ],
-  "logros_del_dia": ["logro 1", "logro 2"],
-  "alertas": ["alerta 1 si hay bloqueos o retrasos"],
-  "plan_manana": "qué se planifica para el día siguiente"
-}`
-
-      const { data: { session } } = await supabase.auth.getSession()
-      const response = await fetch(
-        'https://ebzbrhyvieaypkffbozm.supabase.co/functions/v1/generate-report',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`
-          },
-          body: JSON.stringify({ prompt })
-        }
-      )
-
-      const aiData = await response.json()
-      const aiText = aiData.content?.map(c => c.text || '').join('') || ''
-
-      let aiJson = {}
-      try {
-        const clean = aiText.replace(/```json|```/g, '').trim()
-        aiJson = JSON.parse(clean)
-      } catch { aiJson = { resumen_ejecutivo: aiText, actividades: [], logros_del_dia: [], alertas: [], plan_manana: '' } }
-
-      // 5. Generar HTML del reporte
-      const st = statusColor(ganttProgress)
+      // 4. Calcular porcentajes y desviación (necesario antes del statusColor)
       const today = new Date(grupo.date)
       const start = grupo.start_date ? new Date(grupo.start_date) : today
       const end = grupo.end_date ? new Date(grupo.end_date) : today
@@ -297,6 +250,106 @@ Genera un JSON con esta estructura exacta (solo JSON, sin markdown):
       const plannedPct = Math.min(100, Math.round((elapsedDays / totalDays) * 100))
       const realPct = Math.round(ganttProgress)
       const deviation = realPct - plannedPct
+
+      // 5. Construir transcripciones del día para el prompt
+      const transcripciones = grupo.reports
+        .map(r => {
+          const nombre = r.profiles?.full_name || 'Técnico'
+          const texto = r.audio_transcript || ''
+          return texto ? `[${nombre}]: ${texto}` : null
+        })
+        .filter(Boolean)
+        .join('\n\n')
+
+      // Fallback de actividades desde checklist_items reales (si la IA falla)
+      const actividadesFallback = grupo.reports.flatMap(r =>
+        (Array.isArray(r.checklist_items) ? r.checklist_items : []).map(item => ({
+          titulo: item.task_name || 'Tarea sin nombre',
+          descripcion: `Ejecutado por ${r.profiles?.full_name || 'Técnico'}.`,
+          progreso: item.progress || 0,
+          estado: (item.progress || 0) === 100 ? 'completado' : (item.progress || 0) > 0 ? 'en_progreso' : 'pendiente'
+        }))
+      )
+
+      // 5. Llamar a Claude API para generar resumen
+      const prompt = `Eres un asistente de gestión de proyectos de seguridad electrónica.
+Genera un resumen ejecutivo profesional en español para el informe diario de proyecto.
+Usa PRINCIPALMENTE las transcripciones de audio del día para redactar el resumen y las actividades con detalle real.
+Si no hay transcripciones, usa las tareas del checklist.
+
+PROYECTO: ${grupo.project_name}
+CLIENTE: ${grupo.client_name || 'Sin cliente'}
+FECHA: ${grupo.date}
+
+TRANSCRIPCIONES DE AUDIO DEL DÍA:
+${transcripciones || 'Sin transcripciones disponibles.'}
+
+TAREAS DEL CHECKLIST:
+${JSON.stringify(actividades.map(a => ({ tecnico: a.tecnico, tareas: a.tareas, bloqueo: a.descripcion_bloqueo })), null, 2)}
+
+Genera un JSON con esta estructura exacta (solo JSON, sin markdown, sin texto adicional):
+{
+  "resumen_ejecutivo": "2-3 oraciones describiendo qué se hizo hoy, basado en las transcripciones reales",
+  "actividades": [
+    {
+      "titulo": "nombre concreto de la actividad ejecutada",
+      "descripcion": "descripción detallada basada en lo que dijeron los técnicos en los audios",
+      "progreso": 75,
+      "estado": "completado|en_progreso|bloqueado"
+    }
+  ],
+  "logros_del_dia": ["logro concreto 1", "logro concreto 2"],
+  "alertas": ["solo si hay bloqueos o problemas reales"],
+  "plan_manana": "qué se planifica hacer mañana según los técnicos"
+}`
+
+      let aiJson = { resumen_ejecutivo: '', actividades: actividadesFallback, logros_del_dia: [], alertas: [], plan_manana: '' }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) throw new Error('Sin sesión activa')
+
+        const response = await fetch(
+          'https://ebzbrhyvieaypkffbozm.supabase.co/functions/v1/generate-report',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ prompt })
+          }
+        )
+
+        if (!response.ok) {
+          const errText = await response.text()
+          console.error('Error Edge Function:', response.status, errText)
+          throw new Error(`Edge Function respondió ${response.status}`)
+        }
+
+        const aiData = await response.json()
+        if (aiData.error) throw new Error(aiData.error)
+
+        const aiText = aiData.content?.map(c => c.text || '').join('') || ''
+        const clean = aiText.replace(/```json[\s\S]*?```|```/g, '').trim()
+        const parsed = JSON.parse(clean)
+
+        // Mezclar: si la IA trajo actividades úsalas, si no usa el fallback
+        aiJson = {
+          resumen_ejecutivo: parsed.resumen_ejecutivo || '',
+          actividades: (parsed.actividades?.length > 0) ? parsed.actividades : actividadesFallback,
+          logros_del_dia: parsed.logros_del_dia || [],
+          alertas: parsed.alertas || [],
+          plan_manana: parsed.plan_manana || ''
+        }
+      } catch (aiErr) {
+        console.error('Error generando resumen con IA:', aiErr.message)
+        // aiJson ya tiene el fallback de actividades reales, solo ponemos resumen genérico
+        aiJson.resumen_ejecutivo = `Jornada del ${fmt(grupo.date)} en ${grupo.project_name}. Se registraron ${actividades.length} reporte(s) de terreno con ${actividades.reduce((a, r) => a + r.tareas.length, 0)} tarea(s) en total.`
+      }
+
+      // 6. Generar HTML del reporte
+      const st = statusColor(deviation)
       const bloqueados = grupo.reports.filter(r => r.has_blocker)
 
       // Recopilar todas las fotos del día
