@@ -514,10 +514,14 @@ Genera un JSON con esta estructura exacta (solo JSON, sin markdown, sin texto ad
 </body>
 </html>`
 
-      const win = window.open('', '_blank')
-      win.document.write(html)
-      win.document.close()
-      setTimeout(() => win.print(), 500)
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const win = window.open(url, '_blank')
+      if (!win) {
+        alert('Tu navegador bloqueó la ventana emergente. Permite los popups para on-report.vercel.app e intenta de nuevo.')
+      } else {
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+      }
 
     } catch (e) {
       console.error('Error generando reporte:', e)
