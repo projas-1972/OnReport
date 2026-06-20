@@ -136,8 +136,8 @@ export default function Informes() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600 }}>Informes PDF</h1>
-        <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Programa el envío automático de informes a los clientes</p>
+        <h1 style={{ fontSize: 20, fontWeight: 600 }}>Programación de Envío de Informe PDF</h1>
+        <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Programa el envío automático de informes PDF a los clientes</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
