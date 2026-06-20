@@ -129,15 +129,15 @@ export default function Informes() {
     setDeletingId(null)
   }
 
-  const typeLabels = { daily: 'Reporte diario', weekly: 'Resumen semanal', on_blocker: 'Solo si hay bloqueos' }
+  const typeLabels = { daily: 'Reporte diario', weekly: 'Resumen semanal', monthly: 'Resumen mensual' }
   const inputStyle = { width: '100%', padding: '9px 12px', background: '#242424', border: '1px solid #333', borderRadius: 8, color: '#f0f0f0', fontSize: 13, outline: 'none' }
   const labelStyle = { fontSize: 12, color: '#888', display: 'block', marginBottom: 5 }
 
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600 }}>Programación de Envío de Informe PDF</h1>
-        <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Programa el envío automático de informes PDF a los clientes</p>
+        <h1 style={{ fontSize: 20, fontWeight: 600 }}>Informes PDF</h1>
+        <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Programa el envío automático de informes a los clientes</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
@@ -160,7 +160,7 @@ export default function Informes() {
               <select style={inputStyle} value={form.report_type} onChange={e => setForm({...form, report_type: e.target.value})}>
                 <option value="daily">Reporte diario</option>
                 <option value="weekly">Resumen semanal</option>
-                <option value="on_blocker">Solo si hay bloqueos</option>
+                <option value="monthly">Resumen mensual</option>
               </select>
             </div>
             <div>
