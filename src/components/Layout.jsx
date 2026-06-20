@@ -6,7 +6,7 @@ const navItems = [
   { to: '/proyectos', label: 'Proyectos',       icon: '📁' },
   { to: '/gantt',     label: 'Carta Gantt',     icon: '📅' },
   { to: '/reportes',  label: 'Reportes',        icon: '📄' },
-  { to: '/informes',  label: 'Prog. Envío PDF', icon: '📨' },
+  { to: '/informes',  label: 'Envío PDF', icon: '📨' },
   { to: '/usuarios',  label: 'Usuarios',        icon: '👥' },
 ]
 
