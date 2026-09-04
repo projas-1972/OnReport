@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { supabase } from '../lib/supabase'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -18,6 +19,175 @@ const statusColor = deviation => {
   if (deviation >= 0)  return { color: '#22c55e', bg: '#052e16', label: 'ADELANTADO',     desc: `${deviation >= 0 ? '+' : ''}${Math.round(deviation)}% sobre lo planificado.` }
   if (deviation >= -10) return { color: '#f59e0b', bg: '#2d1a00', label: 'RETRASO LEVE',   desc: `${Math.round(Math.abs(deviation))} puntos bajo lo planificado. Bajo control.` }
   return                       { color: '#ef4444', bg: '#2d0707', label: 'RETRASO CRÍTICO', desc: `${Math.round(Math.abs(deviation))} puntos bajo lo planificado. Requiere acción inmediata.` }
+}
+
+// ── Cálculo de Curva S ─────────────────────────────────────────────────────
+// Genera dos arrays de puntos {fecha, pct} para la curva planificada y la real.
+// plannedPoints: distribuye el avance esperado de cada tarea linealmente entre
+//   su planned_start y planned_end. Cada tarea vale 1/n del total del proyecto.
+// realPoints: construye el avance real acumulado día a día desde checklist_items
+//   de todos los daily_reports del proyecto, usando el último progreso por tarea.
+
+const calcularCurvaS = (ganttTasks, dailyReports, startDate, endDate) => {
+  if (!ganttTasks?.length || !startDate || !endDate) return { planned: [], real: [] }
+
+  const start = new Date(startDate + 'T00:00:00')
+  const end   = new Date(endDate   + 'T00:00:00')
+  const totalDays = Math.max(1, Math.round((end - start) / 86400000))
+  const n = ganttTasks.length
+
+  // Generar array de fechas del proyecto
+  const fechas = []
+  for (let i = 0; i <= totalDays; i++) {
+    const d = new Date(start)
+    d.setDate(d.getDate() + i)
+    fechas.push(d.toISOString().split('T')[0])
+  }
+
+  // ── Curva planificada ──────────────────────────────────────────────────
+  // Por cada tarea, su contribución al total es (100/n)%.
+  // Esa contribución se distribuye linealmente entre planned_start y planned_end.
+  const plannedByDate = {}
+  fechas.forEach(f => { plannedByDate[f] = 0 })
+
+  ganttTasks.forEach(task => {
+    const ts = task.planned_start ? new Date(task.planned_start + 'T00:00:00') : start
+    const te = task.planned_end   ? new Date(task.planned_end   + 'T00:00:00') : end
+    const taskDays = Math.max(1, Math.round((te - ts) / 86400000))
+    const dailyContrib = (100 / n) / taskDays   // cuánto avanza esta tarea por día
+
+    fechas.forEach(f => {
+      const fd = new Date(f + 'T00:00:00')
+      if (fd >= ts && fd <= te) {
+        plannedByDate[f] = (plannedByDate[f] || 0) + dailyContrib
+      }
+    })
+  })
+
+  // Acumular
+  let acc = 0
+  const planned = fechas.map(f => {
+    acc = Math.min(100, acc + (plannedByDate[f] || 0))
+    return { fecha: f, pct: Math.round(acc * 10) / 10 }
+  })
+
+  // ── Curva real ─────────────────────────────────────────────────────────
+  // Para cada daily_report, tomamos el último progreso reportado por task_id.
+  // El avance real del proyecto = promedio del último progreso de todas las tareas.
+  const reportsByDate = {}
+  ;(dailyReports || []).forEach(r => {
+    if (!reportsByDate[r.report_date]) reportsByDate[r.report_date] = []
+    reportsByDate[r.report_date].push(r)
+  })
+
+  // Acumular el mejor progreso conocido por task_id hasta cada fecha
+  const bestProgressByTask = {}
+  const real = []
+
+  const fechasConReportes = fechas.filter(f => f <= todayCL())
+  fechasConReportes.forEach(f => {
+    if (reportsByDate[f]) {
+      reportsByDate[f].forEach(r => {
+        ;(Array.isArray(r.checklist_items) ? r.checklist_items : []).forEach(item => {
+          const tid = item.task_id || item.task_name
+          if (tid && (item.progress || 0) > (bestProgressByTask[tid] || 0)) {
+            bestProgressByTask[tid] = item.progress || 0
+          }
+        })
+      })
+    }
+    // Calcular avance real del proyecto en esta fecha
+    const taskIds = [...new Set([
+      ...ganttTasks.map(t => t.id),
+      ...Object.keys(bestProgressByTask)
+    ])]
+    if (taskIds.length === 0) {
+      real.push({ fecha: f, pct: 0 })
+    } else {
+      const totalReal = taskIds.reduce((sum, tid) => sum + (bestProgressByTask[tid] || 0), 0)
+      real.push({ fecha: f, pct: Math.round((totalReal / (n * 100)) * 1000) / 10 })
+    }
+  })
+
+  return { planned, real }
+}
+
+// ── Componente Curva S (web) ───────────────────────────────────────────────
+
+function CurvaSChart({ planned, real, deviation }) {
+  // Merge planned + real en un solo array por fecha para recharts
+  const allFechas = [...new Set([...planned.map(p => p.fecha), ...real.map(r => r.fecha)])].sort()
+  const data = allFechas.map(fecha => {
+    const p = planned.find(x => x.fecha === fecha)
+    const r = real.find(x => x.fecha === fecha)
+    return {
+      fecha: fecha.substring(5), // mm-dd para que no sea tan largo
+      planificado: p ? p.pct : null,
+      real: r ? r.pct : null,
+    }
+  })
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null
+    const plan = payload.find(p => p.dataKey === 'planificado')
+    const rl   = payload.find(p => p.dataKey === 'real')
+    const gap  = (rl?.value != null && plan?.value != null) ? rl.value - plan.value : null
+    return (
+      <div style={{ background: '#111318', border: '1px solid #1e2128', borderRadius: 10, padding: '10px 14px', fontSize: 12 }}>
+        <div style={{ color: '#888', marginBottom: 6 }}>{label}</div>
+        {plan && <div style={{ color: '#6366f1' }}>Planificado: <strong>{plan.value}%</strong></div>}
+        {rl   && <div style={{ color: '#22c55e' }}>Real: <strong>{rl.value}%</strong></div>}
+        {gap != null && (
+          <div style={{ marginTop: 4, color: gap >= 0 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>
+            Gap: {gap >= 0 ? '+' : ''}{Math.round(gap * 10) / 10}% {gap >= 0 ? '↑ adelanto' : '↓ retraso'}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (!data.length) return (
+    <div style={{ textAlign: 'center', color: '#555', fontSize: 13, padding: 24 }}>
+      Sin datos suficientes para mostrar la curva S
+    </div>
+  )
+
+  return (
+    <div style={{ background: '#111318', border: '1px solid #1e2128', borderRadius: 16, padding: 20, marginTop: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>
+            ● Curva S — Avance acumulado
+          </div>
+          <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#888' }}>
+              <span style={{ width: 24, borderTop: '2px dashed #6366f1', display: 'inline-block' }} /> Planificado
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#888' }}>
+              <span style={{ width: 24, borderTop: '2px solid #22c55e', display: 'inline-block' }} /> Real
+            </span>
+          </div>
+        </div>
+        <div style={{
+          padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+          background: deviation >= 0 ? '#052e16' : deviation >= -10 ? '#2d1a00' : '#2d0707',
+          color: deviation >= 0 ? '#22c55e' : deviation >= -10 ? '#f59e0b' : '#ef4444',
+        }}>
+          Gap actual: {deviation >= 0 ? '+' : ''}{deviation}%
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={260}>
+        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#1e2128" vertical={false} />
+          <XAxis dataKey="fecha" tick={{ fontSize: 10, fill: '#555' }} tickLine={false} axisLine={{ stroke: '#1e2128' }} interval="preserveStartEnd" />
+          <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#555' }} tickLine={false} axisLine={false} tickFormatter={v => v + '%'} width={36} />
+          <Tooltip content={<CustomTooltip />} />
+          <Line dataKey="planificado" stroke="#6366f1" strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls />
+          <Line dataKey="real" stroke="#22c55e" strokeWidth={2.5} dot={{ r: 3, fill: '#22c55e', strokeWidth: 0 }} connectNulls />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
 }
 
 // ── Componente principal ───────────────────────────────────────────────────
@@ -169,10 +339,11 @@ function ReportesTerrenoTab() {
 // ── Tab 2: Reportes de proyecto ────────────────────────────────────────────
 
 function ReportesProyectoTab() {
-  const [grupos, setGrupos] = useState([])   // [{project_id, project_name, date, reports:[]}]
+  const [grupos, setGrupos] = useState([])
   const [loading, setLoading] = useState(true)
-  const [generating, setGenerating] = useState(null)  // key = projectId+date
+  const [generating, setGenerating] = useState(null)
   const [filterDate, setFilterDate] = useState(todayCL())
+  const [curvaSData, setCurvaSData] = useState({})  // { [project_id]: { planned, real } }
 
   useEffect(() => { loadGrupos() }, [filterDate])
 
@@ -200,7 +371,20 @@ function ReportesProyectoTab() {
       }
       map[r.project_id].reports.push(r)
     })
-    setGrupos(Object.values(map))
+    const gruposArr = Object.values(map)
+    setGrupos(gruposArr)
+
+    // Cargar curva S para cada proyecto
+    const curvaSMap = {}
+    await Promise.all(gruposArr.map(async g => {
+      if (!g.start_date || !g.end_date) return
+      const [{ data: ganttTasks }, { data: allReports }] = await Promise.all([
+        supabase.from('gantt_tasks').select('id, task_name, planned_start, planned_end, actual_progress').eq('project_id', g.project_id),
+        supabase.from('daily_reports').select('report_date, checklist_items').eq('project_id', g.project_id).order('report_date', { ascending: true })
+      ])
+      curvaSMap[g.project_id] = calcularCurvaS(ganttTasks, allReports, g.start_date, g.end_date)
+    }))
+    setCurvaSData(curvaSMap)
     setLoading(false)
   }
 
@@ -348,7 +532,18 @@ Genera un JSON con esta estructura exacta (solo JSON, sin markdown, sin texto ad
         aiJson.resumen_ejecutivo = `Jornada del ${fmt(grupo.date)} en ${grupo.project_name}. Se registraron ${actividades.length} reporte(s) de terreno con ${actividades.reduce((a, r) => a + r.tareas.length, 0)} tarea(s) en total.`
       }
 
-      // 6. Generar HTML del reporte
+      // 6. Calcular datos curva S para el PDF
+      const { data: allReportsForCurva } = await supabase
+        .from('daily_reports')
+        .select('report_date, checklist_items')
+        .eq('project_id', grupo.project_id)
+        .order('report_date', { ascending: true })
+
+      const curvaS = calcularCurvaS(ganttTasks, allReportsForCurva, grupo.start_date, grupo.end_date)
+      const curvaSPlannedJson = JSON.stringify(curvaS.planned)
+      const curvaSRealJson = JSON.stringify(curvaS.real)
+
+      // 7. Generar HTML del reporte
       const st = statusColor(deviation)
       const bloqueados = grupo.reports.filter(r => r.has_blocker)
 
@@ -471,6 +666,19 @@ Genera un JSON con esta estructura exacta (solo JSON, sin markdown, sin texto ad
       </div>
     </div>
 
+    <!-- Curva S -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title"><span style="color:#6366f1">●</span> Curva S — Avance acumulado planificado vs real</div>
+      <div style="display:flex;gap:20px;margin-bottom:12px;font-size:12px;color:#888">
+        <span><span style="display:inline-block;width:20px;border-top:2px dashed #6366f1;vertical-align:middle;margin-right:6px"></span>Planificado</span>
+        <span><span style="display:inline-block;width:20px;border-top:2px solid #22c55e;vertical-align:middle;margin-right:6px"></span>Real</span>
+        <span style="margin-left:auto;font-weight:700;color:${deviation >= 0 ? '#22c55e' : '#f59e0b'}">Gap actual: ${deviation >= 0 ? '+' : ''}${deviation}%</span>
+      </div>
+      <div style="position:relative;height:220px">
+        <canvas id="curvaSPdf" role="img" aria-label="Curva S del proyecto"></canvas>
+      </div>
+    </div>
+
     <!-- Actividades + Alertas -->
     <div class="two-col" style="margin-bottom:16px">
       <div class="card">
@@ -511,6 +719,41 @@ Genera un JSON con esta estructura exacta (solo JSON, sin markdown, sin texto ad
       OnReport · Reporte generado automáticamente · ${new Date().toLocaleString('es-CL')}
     </div>
   </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script>
+    (function() {
+      const planned = ${curvaSPlannedJson};
+      const real    = ${curvaSRealJson};
+      const allFechas = [...new Set([...planned.map(p=>p.fecha),...real.map(r=>r.fecha)])].sort();
+      const labels = allFechas.map(f => f.substring(5));
+      const pData  = allFechas.map(f => { const p = planned.find(x=>x.fecha===f); return p?p.pct:null; });
+      const rData  = allFechas.map(f => { const r = real.find(x=>x.fecha===f);    return r?r.pct:null; });
+      new Chart(document.getElementById('curvaSPdf'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Planificado', data: pData, borderColor: '#6366f1', borderDash: [6,4], borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: true },
+            { label: 'Real',        data: rData, borderColor: '#22c55e', borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#22c55e', tension: 0.3, spanGaps: false }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            afterBody(items) {
+              const p = items.find(i=>i.datasetIndex===0), r = items.find(i=>i.datasetIndex===1);
+              if (p&&r&&r.parsed.y!=null) { const g=r.parsed.y-p.parsed.y; return ['Gap: '+(g>=0?'+':'')+Math.round(g*10)/10+'%']; }
+              return [];
+            }
+          }}},
+          scales: {
+            x: { grid: { color: '#1e2128' }, ticks: { color: '#555', font: { size: 10 } }, border: { color: '#1e2128' } },
+            y: { min: 0, max: 100, grid: { color: '#1e2128' }, ticks: { color: '#555', font: { size: 10 }, callback: v => v+'%' }, border: { color: '#1e2128' } }
+          }
+        }
+      });
+    })();
+  </script>
 </body>
 </html>`
 
@@ -609,13 +852,31 @@ Genera un JSON con esta estructura exacta (solo JSON, sin markdown, sin texto ad
                       minWidth: 160
                     }}
                   >
-                    {isGenerating ? (
-                      <>⏳ Generando con IA...</>
-                    ) : (
-                      <>📄 Generar Informe PDF</>
-                    )}
+                    {isGenerating ? <>⏳ Generando con IA...</> : <>📄 Generar Informe PDF</>}
                   </button>
                 </div>
+
+                {/* Curva S */}
+                {curvaSData[g.project_id] && (
+                  curvaSData[g.project_id].planned.length > 1
+                    ? <CurvaSChart
+                        planned={curvaSData[g.project_id].planned}
+                        real={curvaSData[g.project_id].real}
+                        deviation={(() => {
+                          const today = new Date(g.date)
+                          const start = g.start_date ? new Date(g.start_date) : today
+                          const end = g.end_date ? new Date(g.end_date) : today
+                          const totalDays = Math.max(1, Math.round((end - start) / 86400000))
+                          const elapsedDays = Math.max(0, Math.round((today - start) / 86400000))
+                          const plannedPct = Math.min(100, Math.round((elapsedDays / totalDays) * 100))
+                          const lastReal = curvaSData[g.project_id].real.slice(-1)[0]?.pct || 0
+                          return Math.round(lastReal - plannedPct)
+                        })()}
+                      />
+                    : <div style={{ color: '#555', fontSize: 12, marginTop: 12 }}>
+                        Sin fechas de inicio/fin configuradas para mostrar curva S.
+                      </div>
+                )}
               </div>
             )
           })}
