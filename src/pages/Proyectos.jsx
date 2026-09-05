@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 const statusConfig = {
-  active:  { label: 'En línea',  bg: '#0c1a3a', text: '#93c5fd' },
+  active:  { label: 'En lÃ­nea',  bg: '#0c1a3a', text: '#93c5fd' },
   delayed: { label: 'Retraso',   bg: '#2d1a00', text: '#fcd34d' },
   blocked: { label: 'Bloqueado', bg: '#2d0707', text: '#fca5a5' },
   done:    { label: 'Terminado', bg: '#052e16', text: '#86efac' },
@@ -218,8 +218,8 @@ export default function Proyectos() {
         <div style={{ color: '#888', textAlign: 'center', paddingTop: 40 }}>Cargando...</div>
       ) : projects.length === 0 ? (
         <div style={{ textAlign: 'center', paddingTop: 60, color: '#888' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📁</div>
-          <div>No hay proyectos aún</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>ðŸ“</div>
+          <div>No hay proyectos aÃºn</div>
           <button onClick={() => setShowModal(true)} style={{
             marginTop: 16, padding: '8px 20px', background: '#f0f0f0',
             color: '#0f0f0f', border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer'
@@ -246,24 +246,24 @@ export default function Proyectos() {
                       background: p.report_type === 'checklist' ? '#2d1a00' : '#0c1a3a',
                       color: p.report_type === 'checklist' ? '#fcd34d' : '#93c5fd'
                     }}>
-                      {p.report_type === 'checklist' ? '☑ Checklist' : '📅 Carta Gantt'}
+                      {p.report_type === 'checklist' ? 'â˜‘ Checklist' : 'ðŸ“… Carta Gantt'}
                     </span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888', marginBottom: 12, flexWrap: 'wrap' }}>
-                  {eq.cameras > 0 && <span>📷 {eq.cameras} cámaras</span>}
-                  {eq.sirens > 0 && <span>🔔 {eq.sirens} sirenas</span>}
-                  {eq.speakers > 0 && <span>🔊 {eq.speakers} altoparlantes</span>}
-                  {eq.radars > 0 && <span>📡 {eq.radars} radares</span>}
-                  {eq.cabinets > 0 && <span>🗄️ {eq.cabinets} gabinetes</span>}
+                  {eq.cameras > 0 && <span>ðŸ“· {eq.cameras} cÃ¡maras</span>}
+                  {eq.sirens > 0 && <span>ðŸ”” {eq.sirens} sirenas</span>}
+                  {eq.speakers > 0 && <span>ðŸ”Š {eq.speakers} altoparlantes</span>}
+                  {eq.radars > 0 && <span>ðŸ“¡ {eq.radars} radares</span>}
+                  {eq.cabinets > 0 && <span>ðŸ—„ï¸ {eq.cabinets} gabinetes</span>}
                 </div>
                 <div style={{ fontSize: 12, color: '#888' }}>
-                  📅 {p.start_date} → {p.end_date}
+                  ðŸ“… {p.start_date} â†’ {p.end_date}
                 </div>
-                {p.location && <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>📍 {p.location}</div>}
+                {p.location && <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>ðŸ“ {p.location}</div>}
                 {memberCounts[p.id] > 0 && (
                   <div style={{ fontSize: 12, color: '#93c5fd', marginTop: 4 }}>
-                    👥 {memberCounts[p.id]} {memberCounts[p.id] === 1 ? 'miembro' : 'miembros'}
+                    ðŸ‘¥ {memberCounts[p.id]} {memberCounts[p.id] === 1 ? 'miembro' : 'miembros'}
                   </div>
                 )}
 
@@ -276,7 +276,7 @@ export default function Proyectos() {
                     borderRadius: 8, color: '#888', fontSize: 12, cursor: 'pointer', outline: 'none'
                   }}
                 >
-                  <option value="active">En línea</option>
+                  <option value="active">En lÃ­nea</option>
                   <option value="delayed">Retraso</option>
                   <option value="blocked">Bloqueado</option>
                   <option value="paused">Pausado</option>
@@ -288,7 +288,7 @@ export default function Proyectos() {
                   background: '#1e2128', border: '1px solid #333',
                   borderRadius: 8, color: '#888', fontSize: 12, cursor: 'pointer'
                 }}>
-                  👥 Gestionar equipo
+                  ðŸ‘¥ Gestionar equipo
                 </button>
 
                 {p.report_type === 'checklist' && (
@@ -297,14 +297,14 @@ export default function Proyectos() {
                     background: '#2d1a00', border: '1px solid #92400e',
                     borderRadius: 8, color: '#fcd34d', fontSize: 12, cursor: 'pointer', fontWeight: 500
                   }}>
-                    ☑ Gestionar checklist de actividades
+                    â˜‘ Gestionar checklist de actividades
                   </button>
                 )}
 
                 {p.status === 'done' && (
                   confirmDeleteId === p.id ? (
                     <div style={{ marginTop: 8, background: '#2d0707', border: '1px solid #7f1d1d', borderRadius: 8, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 12, color: '#fca5a5', marginBottom: 8 }}>⚠ ¿Eliminar este proyecto y todos sus datos?</div>
+                      <div style={{ fontSize: 12, color: '#fca5a5', marginBottom: 8 }}>âš  Â¿Eliminar este proyecto y todos sus datos?</div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={() => setConfirmDeleteId(null)} style={{
                           flex: 1, padding: '6px 0', background: '#333', border: 'none',
@@ -313,7 +313,7 @@ export default function Proyectos() {
                         <button onClick={() => deleteProject(p.id)} disabled={deletingId === p.id} style={{
                           flex: 1, padding: '6px 0', background: '#7f1d1d', border: 'none',
                           borderRadius: 6, color: '#fca5a5', fontSize: 12, cursor: 'pointer', fontWeight: 500
-                        }}>{deletingId === p.id ? 'Eliminando...' : '🗑 Confirmar'}</button>
+                        }}>{deletingId === p.id ? 'Eliminando...' : 'ðŸ—‘ Confirmar'}</button>
                       </div>
                     </div>
                   ) : (
@@ -322,7 +322,7 @@ export default function Proyectos() {
                       background: '#2d0707', border: '1px solid #7f1d1d',
                       borderRadius: 8, color: '#fca5a5', fontSize: 12, cursor: 'pointer'
                     }}>
-                      🗑 Eliminar proyecto
+                      ðŸ—‘ Eliminar proyecto
                     </button>
                   )
                 )}
@@ -344,7 +344,7 @@ export default function Proyectos() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ fontSize: 16, fontWeight: 600 }}>Nuevo proyecto</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>âœ•</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
@@ -356,7 +356,7 @@ export default function Proyectos() {
                 <input style={inputStyle} value={form.client_name} onChange={e => setForm({...form, client_name: e.target.value})} placeholder="Nombre del cliente" />
               </div>
               <div>
-                <label style={labelStyle}>Ubicación</label>
+                <label style={labelStyle}>UbicaciÃ³n</label>
                 <input style={inputStyle} value={form.location} onChange={e => setForm({...form, location: e.target.value})} placeholder="Ej: Ruta 68 Poniente, RM" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -365,7 +365,7 @@ export default function Proyectos() {
                   <input type="date" style={inputStyle} value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Fecha término *</label>
+                  <label style={labelStyle}>Fecha tÃ©rmino *</label>
                   <input type="date" style={inputStyle} value={form.end_date} onChange={e => setForm({...form, end_date: e.target.value})} />
                 </div>
               </div>
@@ -402,11 +402,11 @@ export default function Proyectos() {
                 <label style={labelStyle}>Equipos</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                   {[
-                    ['cameras', '📷 Cámaras'],
-                    ['sirens', '🔔 Sirenas'],
-                    ['speakers', '🔊 Altoparlantes'],
-                    ['radars', '📡 Radares'],
-                    ['cabinets', '🗄️ Gabinetes']
+                    ['cameras', 'ðŸ“· CÃ¡maras'],
+                    ['sirens', 'ðŸ”” Sirenas'],
+                    ['speakers', 'ðŸ”Š Altoparlantes'],
+                    ['radars', 'ðŸ“¡ Radares'],
+                    ['cabinets', 'ðŸ—„ï¸ Gabinetes']
                   ].map(([key, label]) => (
                     <div key={key}>
                       <label style={{ fontSize: 11, color: '#888', display: 'block', marginBottom: 3 }}>{label}</label>
@@ -440,7 +440,7 @@ export default function Proyectos() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <h2 style={{ fontSize: 16, fontWeight: 600 }}>Equipo del proyecto</h2>
-              <button onClick={() => setShowMembersModal(false)} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setShowMembersModal(false)} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>âœ•</button>
             </div>
             <div style={{ fontSize: 12, color: '#2563eb', marginBottom: 20 }}>{selectedProject.name}</div>
 
@@ -467,7 +467,7 @@ export default function Proyectos() {
                     <div>
                       <label style={labelStyle}>Puede reportar</label>
                       <select style={inputStyle} value={canReport} onChange={e => setCanReport(e.target.value === 'true')}>
-                        <option value="true">Sí</option>
+                        <option value="true">SÃ­</option>
                         <option value="false">No</option>
                       </select>
                     </div>
@@ -495,13 +495,13 @@ export default function Proyectos() {
                     background: '#111318', border: '1px solid #2a2a2a', borderRadius: 8, padding: '10px 14px'
                   }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>{m.profiles?.full_name || '—'}</div>
-                      <div style={{ fontSize: 11, color: '#888' }}>{m.profiles?.email} · {m.role_in_project} · {m.can_report ? '✓ puede reportar' : 'solo lectura'}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>{m.profiles?.full_name || 'â€”'}</div>
+                      <div style={{ fontSize: 11, color: '#888' }}>{m.profiles?.email} Â· {m.role_in_project} Â· {m.can_report ? 'âœ“ puede reportar' : 'solo lectura'}</div>
                     </div>
                     <button onClick={() => removeMember(m.id)} style={{
                       padding: '3px 10px', background: '#2d0707', color: '#fca5a5',
                       border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer'
-                    }}>✕</button>
+                    }}>âœ•</button>
                   </div>
                 ))}
               </div>
@@ -522,7 +522,7 @@ export default function Proyectos() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <h2 style={{ fontSize: 16, fontWeight: 600 }}>Checklist de actividades</h2>
-              <button onClick={() => setShowChecklistModal(false)} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setShowChecklistModal(false)} style={{ background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer' }}>âœ•</button>
             </div>
             <div style={{ fontSize: 12, color: '#fcd34d', marginBottom: 20 }}>{checklistProject.name}</div>
 
@@ -531,14 +531,14 @@ export default function Proyectos() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <input
                   style={inputStyle}
-                  placeholder="Título de la actividad *"
+                  placeholder="TÃ­tulo de la actividad *"
                   value={newItemTitle}
                   onChange={e => setNewItemTitle(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addChecklistItem()}
                 />
                 <input
                   style={inputStyle}
-                  placeholder="Descripción (opcional)"
+                  placeholder="DescripciÃ³n (opcional)"
                   value={newItemDesc}
                   onChange={e => setNewItemDesc(e.target.value)}
                 />
@@ -556,12 +556,12 @@ export default function Proyectos() {
               <div style={{ color: '#888', textAlign: 'center', padding: 20 }}>Cargando...</div>
             ) : checklistItems.length === 0 ? (
               <div style={{ color: '#555', textAlign: 'center', padding: 20, fontSize: 13 }}>
-                Sin actividades aún. Agrega la primera actividad arriba.
+                Sin actividades aÃºn. Agrega la primera actividad arriba.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ fontSize: 11, color: '#555', marginBottom: 4 }}>
-                  {checklistItems.length} actividad{checklistItems.length !== 1 ? 'es' : ''} · cada una vale {Math.round(100 / checklistItems.length * 10) / 10}% del avance total
+                  {checklistItems.length} actividad{checklistItems.length !== 1 ? 'es' : ''} Â· cada una vale {Math.round(100 / checklistItems.length * 10) / 10}% del avance total
                 </div>
                 {checklistItems.map((item, idx) => (
                   <div key={item.id} style={{
@@ -569,8 +569,8 @@ export default function Proyectos() {
                     background: '#111318', border: '1px solid #2a2a2a', borderRadius: 8, padding: '10px 14px'
                   }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <button onClick={() => moveChecklistItem(item.id, 'up')} disabled={idx === 0} style={{ background: 'none', border: 'none', color: idx === 0 ? '#333' : '#555', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }}>▲</button>
-                      <button onClick={() => moveChecklistItem(item.id, 'down')} disabled={idx === checklistItems.length - 1} style={{ background: 'none', border: 'none', color: idx === checklistItems.length - 1 ? '#333' : '#555', cursor: idx === checklistItems.length - 1 ? 'default' : 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }}>▼</button>
+                      <button onClick={() => moveChecklistItem(item.id, 'up')} disabled={idx === 0} style={{ background: 'none', border: 'none', color: idx === 0 ? '#333' : '#555', cursor: idx === 0 ? 'default' : 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }}>â–²</button>
+                      <button onClick={() => moveChecklistItem(item.id, 'down')} disabled={idx === checklistItems.length - 1} style={{ background: 'none', border: 'none', color: idx === checklistItems.length - 1 ? '#333' : '#555', cursor: idx === checklistItems.length - 1 ? 'default' : 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }}>â–¼</button>
                     </div>
                     <div style={{ width: 24, height: 24, borderRadius: 6, background: '#2d1a00', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: '#fcd34d', fontWeight: 700, flexShrink: 0 }}>
                       {idx + 1}
@@ -582,7 +582,7 @@ export default function Proyectos() {
                     <button onClick={() => deleteChecklistItem(item.id)} style={{
                       padding: '3px 8px', background: '#2d0707', color: '#fca5a5',
                       border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', flexShrink: 0
-                    }}>✕</button>
+                    }}>âœ•</button>
                   </div>
                 ))}
               </div>
