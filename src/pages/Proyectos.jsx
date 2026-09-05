@@ -399,7 +399,7 @@ export default function Proyectos() {
                 <input style={inputStyle} value={form.client_emails} onChange={e => setForm({...form, client_emails: e.target.value})} placeholder="cliente@empresa.cl" />
               </div>
               <div>
-                <label style={labelStyle}>Equipos a instalar</label>
+                <label style={labelStyle}>Equipos</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                   {[
                     ['cameras', '📷 Cámaras'],
