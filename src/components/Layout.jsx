@@ -1,13 +1,14 @@
-﻿import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { LayoutDashboard, FolderKanban, ListChecks, FileText, Send, Users, LogOut } from 'lucide-react'
 
 const navItems = [
-  { to: '/',          label: 'Dashboard',       icon: 'âŠž' },
-  { to: '/proyectos', label: 'Proyectos',       icon: 'ðŸ“' },
-  { to: '/gantt',     label: 'Gestion Tareas',     icon: 'ðŸ“…' },
-  { to: '/reportes',  label: 'Reportes',        icon: 'ðŸ“„' },
-  { to: '/informes',  label: 'EnvÃ­o PDF', icon: 'ðŸ“¨' },
-  { to: '/usuarios',  label: 'Usuarios',        icon: 'ðŸ‘¥' },
+  { to: '/',          label: 'Dashboard',      Icon: LayoutDashboard },
+  { to: '/proyectos', label: 'Proyectos',       Icon: FolderKanban },
+  { to: '/gantt',     label: 'Gestion Tareas',  Icon: ListChecks },
+  { to: '/reportes',  label: 'Reportes',        Icon: FileText },
+  { to: '/informes',  label: 'Informes PDF',    Icon: Send },
+  { to: '/usuarios',  label: 'Usuarios',        Icon: Users },
 ]
 
 export default function Layout({ session }) {
@@ -23,7 +24,6 @@ export default function Layout({ session }) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
       <aside style={{
         width: 220, flexShrink: 0,
         background: '#111318',
@@ -32,7 +32,6 @@ export default function Layout({ session }) {
         position: 'fixed', top: 0, left: 0, height: '100vh',
         zIndex: 10
       }}>
-        {/* Logo */}
         <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid #1e2128' }}>
           <img src="/logo.png" alt="OnReport" style={{ width: '100%', maxWidth: 160, display: 'block' }} />
           <div style={{ fontSize: 10, color: '#555', marginTop: 6, letterSpacing: '0.05em' }}>
@@ -40,13 +39,12 @@ export default function Layout({ session }) {
           </div>
         </div>
 
-        {/* Nav */}
         <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {navItems.map(item => (
+          {navItems.map(({ to, label, Icon }) => (
             <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
+              key={to}
+              to={to}
+              end={to === '/'}
               style={({ isActive }) => ({
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '9px 12px', borderRadius: 8,
@@ -56,13 +54,12 @@ export default function Layout({ session }) {
                 transition: 'all .15s', textDecoration: 'none'
               })}
             >
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
+              <Icon size={16} />
+              <span>{label}</span>
             </NavLink>
           ))}
         </nav>
 
-        {/* User */}
         <div style={{ padding: '12px 16px', borderTop: '1px solid #1e2128' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
@@ -85,20 +82,15 @@ export default function Layout({ session }) {
             </div>
             <button
               onClick={handleLogout}
-              title="Cerrar sesiÃ³n"
-              style={{
-                background: 'none', border: 'none',
-                color: '#555', fontSize: 16, padding: 2,
-                cursor: 'pointer'
-              }}
+              title="Cerrar sesion"
+              style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
             >
-              â»
+              <LogOut size={14} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main content */}
       <main style={{ marginLeft: 220, flex: 1, padding: 28, minHeight: '100vh' }}>
         <Outlet />
       </main>
