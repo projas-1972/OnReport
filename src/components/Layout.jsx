@@ -1,13 +1,13 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+﻿import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const navItems = [
-  { to: '/',          label: 'Dashboard',       icon: '⊞' },
-  { to: '/proyectos', label: 'Proyectos',       icon: '📁' },
-  { to: '/gantt',     label: 'Carta Gantt',     icon: '📅' },
-  { to: '/reportes',  label: 'Reportes',        icon: '📄' },
-  { to: '/informes',  label: 'Envío PDF', icon: '📨' },
-  { to: '/usuarios',  label: 'Usuarios',        icon: '👥' },
+  { to: '/',          label: 'Dashboard',       icon: 'âŠž' },
+  { to: '/proyectos', label: 'Proyectos',       icon: 'ðŸ“' },
+  { to: '/gantt',     label: 'Gestion Tareas',     icon: 'ðŸ“…' },
+  { to: '/reportes',  label: 'Reportes',        icon: 'ðŸ“„' },
+  { to: '/informes',  label: 'EnvÃ­o PDF', icon: 'ðŸ“¨' },
+  { to: '/usuarios',  label: 'Usuarios',        icon: 'ðŸ‘¥' },
 ]
 
 export default function Layout({ session }) {
@@ -85,14 +85,14 @@ export default function Layout({ session }) {
             </div>
             <button
               onClick={handleLogout}
-              title="Cerrar sesión"
+              title="Cerrar sesiÃ³n"
               style={{
                 background: 'none', border: 'none',
                 color: '#555', fontSize: 16, padding: 2,
                 cursor: 'pointer'
               }}
             >
-              ⏻
+              â»
             </button>
           </div>
         </div>
